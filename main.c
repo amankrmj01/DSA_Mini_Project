@@ -6,10 +6,11 @@ typedef struct node
 {
     char name[100];
     int isHospital;
-    Node **adjList;
+    Edge **adjList;
 } Node;
 
-typedef struct edge {
+typedef struct edge
+{
     Node *node;
     int weight;
 } Edge;
@@ -31,10 +32,9 @@ typedef struct graph
     Hospital *hospitals[5];
 } Graph;
 
-
-Graph* createGraph()
+Graph *createGraph()
 {
-    Graph* graph = (Graph*)malloc(sizeof(Graph));
+    Graph *graph = (Graph *)malloc(sizeof(Graph));
     int n = 10;
     for (int i = 0; i < 10; ++i)
     {
@@ -57,13 +57,10 @@ Graph* createGraph()
     strcpy(graph->nodes[8]->name, "I");
     strcpy(graph->nodes[9]->name, "J");
 
-
-
-
     for (int i = 0; i < 5; ++i)
     {
         graph->hospitals[i] = (Hospital *)malloc(sizeof(Hospital));
-        strcpy(graph->hospitals[i]->name, "Hospital "+(i+1));
+        strcpy(graph->hospitals[i]->name, "Hospital " + (i + 1));
         graph->hospitals[i]->occupiedEmergency = 0;
         graph->hospitals[i]->occupiedGeneral = 0;
         graph->hospitals[i]->availableAmbulance = 0;
@@ -73,55 +70,108 @@ Graph* createGraph()
     }
 
     // Create adjacency list
-    graph->nodes[0]->adjList = (Node **)malloc(3 * sizeof(Node *));
-    graph->nodes[0]->adjList[0] = graph->nodes[6]; // G
-    graph->nodes[0]->adjList[1] = graph->nodes[5]; // F
-    graph->nodes[0]->adjList[2] = graph->nodes[8]; // I
+    // For node A
+    graph->nodes[0]->adjList = (Edge **)malloc(3 * sizeof(Edge *));
+    graph->nodes[0]->adjList[0] = (Edge *)malloc(sizeof(Edge));
+    graph->nodes[0]->adjList[0]->node = graph->nodes[6]; // G
+    graph->nodes[0]->adjList[0]->weight = 10;
 
-    graph->nodes[1]->adjList = (Node **)malloc(2 * sizeof(Node *));
-    graph->nodes[1]->adjList[0] = graph->nodes[7]; // H
-    graph->nodes[1]->adjList[1] = graph->nodes[9]; // J
+    graph->nodes[0]->adjList[1] = (Edge *)malloc(sizeof(Edge));
+    graph->nodes[0]->adjList[1]->node = graph->nodes[5]; // F
+    graph->nodes[0]->adjList[1]->weight = 15;
 
-    graph->nodes[2]->adjList = (Node **)malloc(sizeof(Node *));
-    graph->nodes[2]->adjList[0] = graph->nodes[8]; // I
+    graph->nodes[0]->adjList[2] = (Edge *)malloc(sizeof(Edge));
+    graph->nodes[0]->adjList[2]->node = graph->nodes[8]; // I
+    graph->nodes[0]->adjList[2]->weight = 20;
 
-    graph->nodes[3]->adjList = (Node **)malloc(sizeof(Node *));
-    graph->nodes[3]->adjList[0] = graph->nodes[9]; // J
+    // For node B
+    graph->nodes[1]->adjList = (Edge **)malloc(2 * sizeof(Edge *));
+    graph->nodes[1]->adjList[0] = (Edge *)malloc(sizeof(Edge));
+    graph->nodes[1]->adjList[0]->node = graph->nodes[7]; // H
+    graph->nodes[1]->adjList[0]->weight = 25;
 
-    graph->nodes[4]->adjList = (Node **)malloc(sizeof(Node *));
-    graph->nodes[4]->adjList[0] = graph->nodes[7]; // H
+    graph->nodes[1]->adjList[1] = (Edge *)malloc(sizeof(Edge));
+    graph->nodes[1]->adjList[1]->node = graph->nodes[9]; // J
+    graph->nodes[1]->adjList[1]->weight = 30;
 
-    graph->nodes[5]->adjList = (Node **)malloc(3 * sizeof(Node *));
-    graph->nodes[5]->adjList[0] = graph->nodes[0]; // A
-    graph->nodes[5]->adjList[1] = graph->nodes[9]; // J
-    graph->nodes[5]->adjList[2] = graph->nodes[7]; // H
+    // Continue this pattern for the rest of the nodes...
+    // For node C
+    graph->nodes[2]->adjList = (Edge **)malloc(sizeof(Edge *));
+    graph->nodes[2]->adjList[0] = (Edge *)malloc(sizeof(Edge));
+    graph->nodes[2]->adjList[0]->node = graph->nodes[8]; // I
+    graph->nodes[2]->adjList[0]->weight = 35;
 
-    graph->nodes[6]->adjList = (Node **)malloc(sizeof(Node *));
-    graph->nodes[6]->adjList[0] = graph->nodes[0]; // A
+    // For node D
+    graph->nodes[3]->adjList = (Edge **)malloc(sizeof(Edge *));
+    graph->nodes[3]->adjList[0] = (Edge *)malloc(sizeof(Edge));
+    graph->nodes[3]->adjList[0]->node = graph->nodes[9]; // J
+    graph->nodes[3]->adjList[0]->weight = 40;
 
-    graph->nodes[7]->adjList = (Node **)malloc(3 * sizeof(Node *));
-    graph->nodes[7]->adjList[0] = graph->nodes[5]; // F
-    graph->nodes[7]->adjList[1] = graph->nodes[1]; // B
-    graph->nodes[7]->adjList[2] = graph->nodes[4]; // E
+    // For node E
+    graph->nodes[4]->adjList = (Edge **)malloc(sizeof(Edge *));
+    graph->nodes[4]->adjList[0] = (Edge *)malloc(sizeof(Edge));
+    graph->nodes[4]->adjList[0]->node = graph->nodes[7]; // H
+    graph->nodes[4]->adjList[0]->weight = 45;
 
-    graph->nodes[8]->adjList = (Node **)malloc(2 * sizeof(Node *));
-    graph->nodes[8]->adjList[0] = graph->nodes[0]; // A
-    graph->nodes[8]->adjList[1] = graph->nodes[2]; // C
+    // For node F
+    graph->nodes[5]->adjList = (Edge **)malloc(3 * sizeof(Edge *));
+    graph->nodes[5]->adjList[0] = (Edge *)malloc(sizeof(Edge));
+    graph->nodes[5]->adjList[0]->node = graph->nodes[0]; // A
+    graph->nodes[5]->adjList[0]->weight = 50;
 
-    graph->nodes[9]->adjList = (Node **)malloc(3 * sizeof(Node *));
-    graph->nodes[9]->adjList[0] = graph->nodes[5]; // F
-    graph->nodes[9]->adjList[1] = graph->nodes[1]; // B
-    graph->nodes[9]->adjList[2] = graph->nodes[3]; // D
+    graph->nodes[5]->adjList[1] = (Edge *)malloc(sizeof(Edge));
+    graph->nodes[5]->adjList[1]->node = graph->nodes[9]; // J
+    graph->nodes[5]->adjList[1]->weight = 55;
 
+    graph->nodes[5]->adjList[2] = (Edge *)malloc(sizeof(Edge));
+    graph->nodes[5]->adjList[2]->node = graph->nodes[7]; // H
+    graph->nodes[5]->adjList[2]->weight = 60;
+
+    // For node G
+    graph->nodes[6]->adjList = (Edge **)malloc(sizeof(Edge *));
+    graph->nodes[6]->adjList[0] = (Edge *)malloc(sizeof(Edge));
+    graph->nodes[6]->adjList[0]->node = graph->nodes[0]; // A
+    graph->nodes[6]->adjList[0]->weight = 65;
+
+    // For node H
+    graph->nodes[7]->adjList = (Edge **)malloc(3 * sizeof(Edge *));
+    graph->nodes[7]->adjList[0] = (Edge *)malloc(sizeof(Edge));
+    graph->nodes[7]->adjList[0]->node = graph->nodes[5]; // F
+    graph->nodes[7]->adjList[0]->weight = 70;
+
+    graph->nodes[7]->adjList[1] = (Edge *)malloc(sizeof(Edge));
+    graph->nodes[7]->adjList[1]->node = graph->nodes[1]; // B
+    graph->nodes[7]->adjList[1]->weight = 75;
+
+    graph->nodes[7]->adjList[2] = (Edge *)malloc(sizeof(Edge));
+    graph->nodes[7]->adjList[2]->node = graph->nodes[4]; // E
+    graph->nodes[7]->adjList[2]->weight = 80;
+
+    // For node I
+    graph->nodes[8]->adjList = (Edge **)malloc(2 * sizeof(Edge *));
+    graph->nodes[8]->adjList[0] = (Edge *)malloc(sizeof(Edge));
+    graph->nodes[8]->adjList[0]->node = graph->nodes[0]; // A
+    graph->nodes[8]->adjList[0]->weight = 85;
+
+    graph->nodes[8]->adjList[1] = (Edge *)malloc(sizeof(Edge));
+    graph->nodes[8]->adjList[1]->node = graph->nodes[2]; // C
+    graph->nodes[8]->adjList[1]->weight = 90;
+
+    // For node J
+    graph->nodes[9]->adjList = (Edge **)malloc(3 * sizeof(Edge *));
+    graph->nodes[9]->adjList[0] = (Edge *)malloc(sizeof(Edge));
+    graph->nodes[9]->adjList[0]->node = graph->nodes[5]; // F
+    graph->nodes[9]->adjList[0]->weight = 95;
+
+    graph->nodes[9]->adjList[1] = (Edge *)malloc(sizeof(Edge));
+    graph->nodes[9]->adjList[1]->node = graph->nodes[1]; // B
+    graph->nodes[9]->adjList[1]->weight = 100;
+
+    graph->nodes[9]->adjList[2] = (Edge *)malloc(sizeof(Edge));
+    graph->nodes[9]->adjList[2]->node = graph->nodes[3]; // D
+    graph->nodes[9]->adjList[2]->weight = 105;
 
     return graph;
-
-}
-
-
-int createWeight()
-{
-    return (rand() % 29 + 2) * 5;
 }
 
 void callAmbulance(Graph *graph, Node *source, Node *destination)
