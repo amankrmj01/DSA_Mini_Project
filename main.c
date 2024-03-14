@@ -94,7 +94,6 @@ Graph *createGraph()
     graph->nodes[1]->adjList[1]->node = graph->nodes[9]; // J
     graph->nodes[1]->adjList[1]->weight = 30;
 
-    // Continue this pattern for the rest of the nodes...
     // For node C
     graph->nodes[2]->adjList = (Edge **)malloc(sizeof(Edge *));
     graph->nodes[2]->adjList[0] = (Edge *)malloc(sizeof(Edge));
