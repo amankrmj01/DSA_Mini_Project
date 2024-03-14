@@ -1,3 +1,4 @@
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -7,9 +8,10 @@ typedef struct edge Edge;
 typedef struct node
 {
     char name[100];
+    int isVisited;
     int isHospital;
     Edge **adjList;
-}Node;
+} Node;
 
 typedef struct edge
 {
@@ -175,6 +177,110 @@ Graph *createGraph()
     return graph;
 }
 
+
+int calculateTime(Graph *graph, Node *source, Node *destination)
+{
+    int minTime = INT_MAX;
+    Node *nearestHospital = NULL;
+
+    // Find the nearest hospital
+    for (int i = 0; i < 5; ++i)
+    {
+        if (graph->hospitals[i]->availableAmbulance > 0)
+        {
+            int time = calculateDistance(source, graph->hospitals[i]->node) + calculateDistance(graph->hospitals[i]->node, destination);
+            if (time < minTime)
+            {
+                minTime = time;
+                nearestHospital = graph->hospitals[i]->node;
+            }
+        }
+    }
+
+    if (nearestHospital != NULL)
+    {
+        callAmbulance(graph, source, nearestHospital);
+        callAmbulance(graph, nearestHospital, destination);
+        return minTime;
+    }
+    else
+    {
+        printf("No ambulance available\n");
+        return -1;
+    }
+}
+
+
+
+
+int calculateDistance(Graph *graph, Node *source)
+{
+    // Create a priority queue to store nodes with their distances
+    PriorityQueue *queue = createPriorityQueue();
+
+    // Set the distance of the source node to 0 and enqueue it
+    source->distance = 0;
+    enqueue(queue, source);
+
+    // Create a list to store hospitals available nearest from the source node
+    List *hospitalList = createList();
+
+    while (!isEmpty(queue))
+    {
+        // Dequeue the node with the minimum distance
+        Node *currentNode = dequeue(queue);
+
+        // Iterate through the adjacent nodes of the current node
+        for (int i = 0; i < currentNode->numAdjacentNodes; i++)
+        {
+            Node *adjacentNode = currentNode->adjacentNodes[i];
+            int distance = currentNode->distance + calculateEdgeWeight(currentNode, adjacentNode);
+
+            // If the new distance is smaller than the current distance, update the distance and enqueue the adjacent node
+            if (distance < adjacentNode->distance)
+            {
+                adjacentNode->distance = distance;
+                enqueue(queue, adjacentNode);
+
+                // Check if the adjacent node is a hospital and add it to the hospital list
+                if (adjacentNode->isHospital)
+                {
+                    insertAtEnd(hospitalList, adjacentNode);
+                }
+            }
+        }
+    }
+
+    // Create an array to store the hospital list in order of nearest
+    Node *nearestHospitals[hospitalList->size];
+    int index = 0;
+
+    // Iterate through the hospital list and add hospitals to the array
+    Node *currentHospital = hospitalList->head;
+    while (currentHospital != NULL)
+    {
+        nearestHospitals[index] = currentHospital;
+        currentHospital = currentHospital->next;
+        index++;
+    }
+
+    // Check the hospitals in order of nearest
+    for (int i = 0; i < index; i++)
+    {
+        Node *hospital = nearestHospitals[i];
+
+        // Check if the hospital has an available ambulance and emergency bed
+        if (hospital->availableAmbulance > 0 && hospital->emergencyBedAvailable)
+        {
+            // Send the destination node
+            return calculateDistance(source, hospital);
+        }
+    }
+
+    // If no hospital satisfies the conditions, return -1
+    return -1;
+}
+
 void callAmbulance(Graph *graph, Node *source, Node *destination)
 {
     for (int i = 0; i < 5; ++i)
@@ -189,16 +295,6 @@ void callAmbulance(Graph *graph, Node *source, Node *destination)
     printf("No ambulance available\n");
 }
 
-// void adjacentHospitals(Graph *graph, Node *source)
-// {
-//     for (int i = 0; i < 5; ++i)
-//     {
-//         if (source->adjList[i]->isHospital)
-//         {
-//             printf("%s\n", source->adjList[i]->name);
-//         }
-//     }
-// }
 
 int main()
 {
