@@ -2,12 +2,14 @@
 #include <stdlib.h>
 #include <string.h>
 
+typedef struct edge Edge;
+
 typedef struct node
 {
     char name[100];
     int isHospital;
     Edge **adjList;
-} Node;
+}Node;
 
 typedef struct edge
 {
@@ -187,16 +189,16 @@ void callAmbulance(Graph *graph, Node *source, Node *destination)
     printf("No ambulance available\n");
 }
 
-void adjacentHospitals(Graph *graph, Node *source)
-{
-    for (int i = 0; i < 5; ++i)
-    {
-        if (source->adjList[i]->isHospital)
-        {
-            printf("%s\n", source->adjList[i]->name);
-        }
-    }
-}
+// void adjacentHospitals(Graph *graph, Node *source)
+// {
+//     for (int i = 0; i < 5; ++i)
+//     {
+//         if (source->adjList[i]->isHospital)
+//         {
+//             printf("%s\n", source->adjList[i]->name);
+//         }
+//     }
+// }
 
 int main()
 {
