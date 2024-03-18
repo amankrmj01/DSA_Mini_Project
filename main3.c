@@ -21,10 +21,10 @@ typedef struct node
 typedef struct hospital
 {
     char name[100];
-    int emergencyCapacity;
-    int generalCapacity;
-    int occupiedEmergency;
-    int occupiedGeneral;
+    int availableEmergency;
+    int maxEmergency;
+    int availableGeneral;
+    int maxGeneral;
     int availableAmbulance;
     int maxAmbulance;
 } Hospital;
@@ -77,12 +77,12 @@ Graph *createGraph()
     {
         graph->hospitals[i] = (Hospital *)malloc(sizeof(Hospital));
         sprintf(graph->hospitals[i]->name, "Hospital %c", ' ' + i + 33);
-        graph->hospitals[i]->emergencyCapacity = 10;
-        graph->hospitals[i]->occupiedEmergency = 0;
-        graph->hospitals[i]->occupiedGeneral = 0;
-        graph->hospitals[i]->availableAmbulance = 0;
+        graph->hospitals[i]->availableEmergency = 10;
+        graph->hospitals[i]-> maxEmergency= 10;
+        graph->hospitals[i]->maxGeneral = 20;
+        graph->hospitals[i]->availableGeneral = 20;
+        graph->hospitals[i]->availableAmbulance = 5;
         graph->hospitals[i]->maxAmbulance = 5;
-        graph->hospitals[i]->generalCapacity = 20;
     }
 
     // Creating adjacency list
@@ -186,89 +186,149 @@ Graph *primMST(Graph *graph)
     return mstGraph;
 }
 
-int getNodesIndex(void **nodes, void *targetNode, int numNodes) {
-    for (int i = 0; i < numNodes; i++) {
-        printf("%d     %d    ",nodes[i],targetNode,nodes[i]);
-        printf("%s    ",((Node *)nodes[i])->name);
-        printf("%s\n",((Node *)targetNode)->name);
-        if (nodes[i] == targetNode) {
+#define INF 99999999
+
+typedef struct queue
+{
+    int items[100];
+    int front;
+    int rear;
+} Queue;
+
+Queue *createQueue();
+void enqueue(Queue *q, int);
+int dequeue(Queue *q);
+int isEmpty(Queue *q);
+
+int getNodeSIndex(void **nodes, void *targetNode, int numNodes)
+{
+    for (int i = 0; i < numNodes; i++)
+    {
+        if (strcmp(((Node *)nodes[i])->name, ((Node *)targetNode)->name) == 0)
+        {
             return i;
         }
     }
-    // printf("Node not found    %s\n",((Node *)targetNode)->name);
-    return -1; // If the node is not found
+    return -1; // Return -1 if the node is not found
 }
 
-// Function to get the index with the minimum distance in the distances array
-int minDistancesIndex(int distances[], int visited[], int numNodes) {
-    int minDist = INT_MAX;
-    int minIndex = -1;
-
-    for (int i = 0; i < numNodes; i++) {
-        if (!visited[i] && distances[i] <= minDist) {
-            minDist = distances[i];
-            minIndex = i;
-        }
-    }
-
-    return minIndex;
-}
-int *calculateTimeToHospitals(Graph *graph, Node *sourceNode)
+void bfs(Graph *graph, Node *startNode, int *distances)
 {
-    printf("\n\n");
-    int *timeToHospitals = (int *)malloc(5 * sizeof(int));
-    int visited[10] = {0};
-    int distances[10];
+    printf("BFS\n");
+    Queue *q = createQueue();
 
-    // Initialize distances array with INT_MAX except for the source node
     for (int i = 0; i < 10; i++)
     {
-        distances[i] = INT_MAX;
+        distances[i] = INF;
     }
-    // printf("%d", graph->nodes);
-    printf("one");
-    distances[getNodesIndex((void **)graph->nodes, sourceNode, 10)] = 0;
-    printf("one\n");
 
-    // Apply Dijkstra's algorithm
-    for (int i = 0; i < 9; i++)
+    int startNodeIndex = getNodeSIndex((void **)graph->nodes, startNode, 10);
+    distances[startNodeIndex] = 0;
+
+    enqueue(q, startNodeIndex);
+
+    while (!isEmpty(q))
     {
-        int minDistIndex = minDistancesIndex(distances, visited,10);
-        Node *currentNode = graph->nodes[minDistIndex];
-        visited[minDistIndex] = 1;
+        int currentNodeIndex = dequeue(q);
+        Node *currentNode = graph->nodes[currentNodeIndex];
 
-        for (int j = 0; j < currentNode->adjListCount; j++)
+        for (int i = 0; i < currentNode->adjListCount; i++)
         {
-            Node *neighbor = currentNode->adjList[j]->node;
-            int weight = currentNode->adjList[j]->weight;
-            int neighborIndex = getNodesIndex((void **)graph->nodes, neighbor, 10);
+            Edge *edge = currentNode->adjList[i];
+            int adjNodeIndex = getNodeSIndex((void **)graph->nodes, edge->node, 10);
 
-            if (!visited[neighborIndex] && distances[minDistIndex] != INT_MAX &&
-                distances[minDistIndex] + weight < distances[neighborIndex])
+            if (distances[currentNodeIndex] + edge->weight < distances[adjNodeIndex])
             {
-                distances[neighborIndex] = distances[minDistIndex] + weight;
+                distances[adjNodeIndex] = distances[currentNodeIndex] + edge->weight;
+                enqueue(q, adjNodeIndex);
             }
         }
     }
-
-    // Extract hospital distances
-    for (int i = 0; i < 5; i++)
-    {
-        int hospitalIndex = getNodesIndex((void **)graph->nodes, graph->hospitals[i], 10);
-        timeToHospitals[i] = distances[i];
-    }
-
-    return timeToHospitals;
 }
 
-void printTimeToHospitals(Node *sourceNode, int *timeToHospitals, Hospital *hospitals[])
+Queue *createQueue()
 {
-    printf("Time taken from source node %s to reach each hospital:\n", sourceNode->name);
-    for (int i = 0; i < 5; i++)
+    Queue *q = malloc(sizeof(Queue));
+    q->front = -1;
+    q->rear = -1;
+    return q;
+}
+
+int isEmpty(Queue *q)
+{
+    if (q->rear == -1)
+        return 1;
+    else
+        return 0;
+}
+
+void enqueue(Queue *q, int value)
+{
+    if (q->rear == 100 - 1)
     {
-        printf("Hospital %s: %d\n", hospitals[i]->name, timeToHospitals[i]);
     }
-    printf("\n");
+    else
+    {
+        if (q->front == -1)
+            q->front = 0;
+        q->rear++;
+        q->items[q->rear] = value;
+    }
+}
+
+int dequeue(Queue *q)
+{
+    int item;
+    if (isEmpty(q))
+    {
+        item = -1;
+    }
+    else
+    {
+        item = q->items[q->front];
+        q->front++;
+        if (q->front > q->rear)
+        {
+            q->front = q->rear = -1;
+        }
+    }
+    return item;
+}
+
+void isHospitalAvailable(Hospital *hospital)
+{
+    if (hospital->availableAmbulance > 0)
+    {
+        printf("Ambulance is available at %s\n", hospital->name);
+    }
+    else
+    {
+        printf("Ambulance is not available at %s\n", hospital->name);
+    }
+}
+
+void nearestHospital(Graph *graph, int distance[], int location)
+{
+    int min = INT_MAX;
+    int index = -1;
+    while (1)
+    {
+        for (int i = 0; i < 5; i++)
+        {
+            if (i == location)
+            {
+                continue;
+            }
+            if (distance[i] < min)
+            {
+                min = distance[i];
+                index = i;
+            }
+        }
+        isHospitalAvailable(graph->hospitals[index]);
+        break;
+    }
+    printf("Nearest Hospital is %s at a distance of %d\n", graph->hospitals[index]->name, distance[index]);
 }
 
 int main()
@@ -289,15 +349,23 @@ int main()
     printf("\nMinimum Spanning Tree (MST):\n");
     printGraph(mstGraph);
 
-    Node *sourceNode = mstGraph->nodes[3]; // Node D as source
+    int distances[10] = {0};
 
-    int *timeToHospitals = calculateTimeToHospitals(mstGraph, sourceNode);
+    // Call the bfs function
+    printf("\nDistances from source node to all other nodes:\n");
+    int location = 9;
+    struct node *sourceNode = graph->nodes[location]; // Node D as source
 
-    // Print the time taken to reach each hospital from the source node
-    printTimeToHospitals(sourceNode, timeToHospitals, mstGraph->hospitals);
+    bfs(graph, sourceNode, distances); // if G is at index 6
 
-    // Clean up
-    free(timeToHospitals);
+    // Print the distances from the source node to all other nodes
+    for (int i = 0; i < 10; i++)
+    {
+        printf("Distance from source to node %d: %d\n", i, distances[i]);
+    }
+    printf("\n\n");
+
+    nearestHospital(graph, distances, location);
 
     return 0;
 }
