@@ -130,9 +130,12 @@ int minDistanceIndex(int minDist[], int visited[])
     return minIndex;
 }
 
-int getNodeIndex(void **nodes, void *targetNode, int numNodes) {
-    for (int i = 0; i < numNodes; i++) {
-        if (nodes[i] == targetNode) {
+int getNodeIndex(void **nodes, void *targetNode, int numNodes)
+{
+    for (int i = 0; i < numNodes; i++)
+    {
+        if (nodes[i] == targetNode)
+        {
             return i;
         }
     }
@@ -183,22 +186,51 @@ Graph *primMST(Graph *graph)
     return mstGraph;
 }
 
+int getNodesIndex(void **nodes, void *targetNode, int numNodes) {
+    for (int i = 0; i < numNodes; i++) {
+        if (nodes[i] == targetNode) {
+            return i;
+        }
+    }
+    printf("Node not found    %s\n",((Node *)targetNode)->name);
+    return -1; // If the node is not found
+}
+
+// Function to get the index with the minimum distance in the distances array
+int minDistancesIndex(int distances[], int visited[], int numNodes) {
+    int minDist = INT_MAX;
+    int minIndex = -1;
+
+    for (int i = 0; i < numNodes; i++) {
+        if (!visited[i] && distances[i] <= minDist) {
+            minDist = distances[i];
+            minIndex = i;
+        }
+    }
+
+    return minIndex;
+}
 int *calculateTimeToHospitals(Graph *graph, Node *sourceNode)
 {
+    printf("\n\n");
     int *timeToHospitals = (int *)malloc(5 * sizeof(int));
     int visited[10] = {0};
-    // Initialize distances array with INT_MAX except for the source node
     int distances[10];
+
+    // Initialize distances array with INT_MAX except for the source node
     for (int i = 0; i < 10; i++)
     {
         distances[i] = INT_MAX;
     }
-    distances[getNodeIndex((void **)graph->nodes, sourceNode, 10)] = 0;
+    // printf("%d", graph->nodes);
+    printf("one");
+    distances[getNodesIndex((void **)graph->nodes, sourceNode, 10)] = 0;
+    printf("one\n");
 
-    // Apply Dijkstra's algorithm to compute the shortest paths from the source node
+    // Apply Dijkstra's algorithm
     for (int i = 0; i < 9; i++)
     {
-        int minDistIndex = minDistanceIndex(distances, visited);
+        int minDistIndex = minDistancesIndex(distances, visited,10);
         Node *currentNode = graph->nodes[minDistIndex];
         visited[minDistIndex] = 1;
 
@@ -206,19 +238,21 @@ int *calculateTimeToHospitals(Graph *graph, Node *sourceNode)
         {
             Node *neighbor = currentNode->adjList[j]->node;
             int weight = currentNode->adjList[j]->weight;
-            int neighborIndex = getNodeIndex((void **)graph->nodes, neighbor, 10);
+            int neighborIndex = getNodesIndex((void **)graph->nodes, neighbor, 10);
 
-            if (!visited[neighborIndex] && distances[minDistIndex] + weight < distances[neighborIndex])
+            if (!visited[neighborIndex] && distances[minDistIndex] != INT_MAX &&
+                distances[minDistIndex] + weight < distances[neighborIndex])
             {
                 distances[neighborIndex] = distances[minDistIndex] + weight;
             }
         }
     }
 
-    // Calculate the time taken to reach each hospital from the source node
+    // Extract hospital distances
     for (int i = 0; i < 5; i++)
     {
-        timeToHospitals[i] = distances[getNodeIndex((void **)graph->nodes, graph->hospitals[i], 10)];
+        int hospitalIndex = getNodesIndex((void **)graph->nodes, graph->hospitals[i], 10);
+        timeToHospitals[i] = distances[hospitalIndex];
     }
 
     return timeToHospitals;
@@ -251,7 +285,6 @@ int main()
     // Print the Minimum Spanning Tree
     printf("\nMinimum Spanning Tree (MST):\n");
     printGraph(mstGraph);
-
 
     Node *sourceNode = mstGraph->nodes[3]; // Node D as source
 
