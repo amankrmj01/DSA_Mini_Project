@@ -3,20 +3,23 @@
 #include <string.h>
 #include <limits.h>
 
-typedef struct edge {
-    struct node* node;
+typedef struct edge
+{
+    struct node *node;
     int weight;
 } Edge;
 
-typedef struct node {
+typedef struct node
+{
     char name[100];
     int isVisited;
     int isHospital;
     int adjListCount;
-    Edge** adjList;
+    Edge **adjList;
 } Node;
 
-typedef struct hospital {
+typedef struct hospital
+{
     char name[100];
     int emergencyCapacity;
     int generalCapacity;
@@ -26,11 +29,11 @@ typedef struct hospital {
     int maxAmbulance;
 } Hospital;
 
-typedef struct graph {
-    Node* nodes[10];
-    Hospital* hospitals[5];
+typedef struct graph
+{
+    Node *nodes[10];
+    Hospital *hospitals[5];
 } Graph;
-
 
 void setAdjacencyList(Node *node, int numEdges, Edge *edges[])
 {
@@ -39,12 +42,11 @@ void setAdjacencyList(Node *node, int numEdges, Edge *edges[])
 
     for (int i = 0; i < numEdges; i++)
     {
-        node->adjList[i] = (Edge*)malloc(sizeof(Edge));
+        node->adjList[i] = (Edge *)malloc(sizeof(Edge));
         node->adjList[i]->node = edges[i]->node;
         node->adjList[i]->weight = edges[i]->weight;
     }
 }
-
 
 Graph *createGraph()
 {
@@ -95,27 +97,32 @@ Graph *createGraph()
     setAdjacencyList(graph->nodes[8], 2, (Edge *[]){&(Edge){graph->nodes[0], 20}, &(Edge){graph->nodes[2], 35}});
     setAdjacencyList(graph->nodes[9], 3, (Edge *[]){&(Edge){graph->nodes[5], 55}, &(Edge){graph->nodes[1], 30}, &(Edge){graph->nodes[3], 40}});
 
-
     return graph;
 }
 
-void printGraph(Graph* graph) {
-    for (int i = 0; i < 10; i++) {
-        Node* currentNode = graph->nodes[i];
+void printGraph(Graph *graph)
+{
+    for (int i = 0; i < 10; i++)
+    {
+        Node *currentNode = graph->nodes[i];
         printf("Node %s: ", currentNode->name);
 
-        for (int j = 0; j <  currentNode->adjListCount; j++) {
-            Edge* currentEdge = currentNode->adjList[j];
+        for (int j = 0; j < currentNode->adjListCount; j++)
+        {
+            Edge *currentEdge = currentNode->adjList[j];
             printf("(%s, weight: %d)  ", currentEdge->node->name, currentEdge->weight);
         }
         printf("\n");
     }
 }
 
-int minDistIndex(int minDist[], int visited[]) {
+int minDistanceIndex(int minDist[], int visited[])
+{
     int min = INT_MAX, minIndex;
-    for (int i = 0; i < 10; i++) {
-        if (!visited[i] && minDist[i] < min) {
+    for (int i = 0; i < 10; i++)
+    {
+        if (!visited[i] && minDist[i] < min)
+        {
             min = minDist[i];
             minIndex = i;
         }
@@ -123,25 +130,25 @@ int minDistIndex(int minDist[], int visited[]) {
     return minIndex;
 }
 
-int getNodeIndex(Node* nodes[], Node* targetNode, int numNodes) {
+int getNodeIndex(void **nodes, void *targetNode, int numNodes) {
     for (int i = 0; i < numNodes; i++) {
         if (nodes[i] == targetNode) {
             return i;
         }
     }
-    return -1;  // Return -1 if the node is not found
+    return -1; // Return -1 if the node is not found
 }
 
-
-
-Graph* primMST(Graph* graph) {
+Graph *primMST(Graph *graph)
+{
     // Create a new graph for the MST
-    Graph* mstGraph = createGraph();
+    Graph *mstGraph = createGraph();
 
     // Initialize arrays to track visited nodes and distances
     int visited[10] = {0};
     int minDist[10];
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 10; i++)
+    {
         minDist[i] = INT_MAX;
     }
 
@@ -149,23 +156,26 @@ Graph* primMST(Graph* graph) {
     minDist[0] = 0;
 
     // Choose the source node as the first node
-    Node* currentNode = graph->nodes[0];
+    Node *currentNode = graph->nodes[0];
 
     // Perform Prim's algorithm
-    for (int i = 0; i < 9; i++) {
-        int minIndex = minDistIndex(minDist, visited);
+    for (int i = 0; i < 9; i++)
+    {
+        int minIndex = minDistanceIndex(minDist, visited);
         currentNode = graph->nodes[minIndex];
         visited[minIndex] = 1;
 
         // Update distances based on the current node's adjacency list
-        for (int j = 0; j < currentNode->adjListCount; j++) {
-            Node* nextNode = currentNode->adjList[j]->node;
+        for (int j = 0; j < currentNode->adjListCount; j++)
+        {
+            Node *nextNode = currentNode->adjList[j]->node;
             int weight = currentNode->adjList[j]->weight;
-            int nextNodeIndex = getNodeIndex(graph->nodes, nextNode, 10);
-            if (!visited[nextNodeIndex] && weight < minDist[nextNodeIndex]) {
+            int nextNodeIndex = getNodeIndex((void **)graph->nodes, nextNode, 10);
+            if (!visited[nextNodeIndex] && weight < minDist[nextNodeIndex])
+            {
                 minDist[nextNodeIndex] = weight;
                 // Add the minimum weighted edge to the MST graph
-                setAdjacencyList(mstGraph->nodes[nextNodeIndex], 1, (Edge *[]) {&(Edge){currentNode, minDist[nextNodeIndex]}});
+                setAdjacencyList(mstGraph->nodes[nextNodeIndex], 1, (Edge *[]){&(Edge){currentNode, minDist[nextNodeIndex]}});
             }
         }
     }
@@ -173,28 +183,85 @@ Graph* primMST(Graph* graph) {
     return mstGraph;
 }
 
+int *calculateTimeToHospitals(Graph *graph, Node *sourceNode)
+{
+    int *timeToHospitals = (int *)malloc(5 * sizeof(int));
+    int visited[10] = {0};
+    // Initialize distances array with INT_MAX except for the source node
+    int distances[10];
+    for (int i = 0; i < 10; i++)
+    {
+        distances[i] = INT_MAX;
+    }
+    distances[getNodeIndex((void **)graph->nodes, sourceNode, 10)] = 0;
 
+    // Apply Dijkstra's algorithm to compute the shortest paths from the source node
+    for (int i = 0; i < 9; i++)
+    {
+        int minDistIndex = minDistanceIndex(distances, visited);
+        Node *currentNode = graph->nodes[minDistIndex];
+        visited[minDistIndex] = 1;
 
+        for (int j = 0; j < currentNode->adjListCount; j++)
+        {
+            Node *neighbor = currentNode->adjList[j]->node;
+            int weight = currentNode->adjList[j]->weight;
+            int neighborIndex = getNodeIndex((void **)graph->nodes, neighbor, 10);
 
-int main() {
+            if (!visited[neighborIndex] && distances[minDistIndex] + weight < distances[neighborIndex])
+            {
+                distances[neighborIndex] = distances[minDistIndex] + weight;
+            }
+        }
+    }
+
+    // Calculate the time taken to reach each hospital from the source node
+    for (int i = 0; i < 5; i++)
+    {
+        timeToHospitals[i] = distances[getNodeIndex((void **)graph->nodes, graph->hospitals[i], 10)];
+    }
+
+    return timeToHospitals;
+}
+
+void printTimeToHospitals(Node *sourceNode, int *timeToHospitals, Hospital *hospitals[])
+{
+    printf("Time taken from source node %s to reach each hospital:\n", sourceNode->name);
+    for (int i = 0; i < 5; i++)
+    {
+        printf("Hospital %s: %d\n", hospitals[i]->name, timeToHospitals[i]);
+    }
+    printf("\n");
+}
+
+int main()
+{
     // Create the graph as per the provided createGraph function
-    Graph* graph = createGraph();
+    Graph *graph = createGraph();
 
     // Assume source node is "A" (0) and there are 5 hospitals
     int hospitalDistances[5];
-    int sourceNode = 0;
 
-    Node* nodes[5] = {graph->nodes[0], graph->nodes[1], graph->nodes[2], graph->nodes[3], graph->nodes[4]};
-    Node** nodesPtr = nodes;
+    Node *nodes[5] = {graph->nodes[0], graph->nodes[1], graph->nodes[2], graph->nodes[3], graph->nodes[4]};
+    Node **nodesPtr = nodes;
 
     printGraph(graph);
-    Graph* mstGraph = primMST(graph);
+    Graph *mstGraph = primMST(graph);
 
     // Print the Minimum Spanning Tree
     printf("\nMinimum Spanning Tree (MST):\n");
     printGraph(mstGraph);
 
+
+    Node *sourceNode = mstGraph->nodes[3]; // Node D as source
+
+    int *timeToHospitals = calculateTimeToHospitals(mstGraph, sourceNode);
+
+    // Print the time taken to reach each hospital from the source node
+    printTimeToHospitals(sourceNode, timeToHospitals, mstGraph->hospitals);
+
+    // Clean up
+    free(timeToHospitals);
+
     return 0;
 }
-
-
