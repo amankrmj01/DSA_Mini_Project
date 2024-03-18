@@ -2,6 +2,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
+#include <unistd.h>
+#include <pthread.h>
+
+pthread_mutex_t lock;
 
 typedef struct edge
 {
@@ -78,7 +82,7 @@ Graph *createGraph()
         graph->hospitals[i] = (Hospital *)malloc(sizeof(Hospital));
         sprintf(graph->hospitals[i]->name, "Hospital %c", ' ' + i + 33);
         graph->hospitals[i]->availableEmergency = 10;
-        graph->hospitals[i]-> maxEmergency= 10;
+        graph->hospitals[i]->maxEmergency = 10;
         graph->hospitals[i]->maxGeneral = 20;
         graph->hospitals[i]->availableGeneral = 20;
         graph->hospitals[i]->availableAmbulance = 5;
@@ -295,11 +299,45 @@ int dequeue(Queue *q)
     return item;
 }
 
-void isHospitalAvailable(Hospital *hospital)
+void *return_ambulance(void *arg)
 {
+    int duration = *(int *)arg;
+    sleep(duration);
+    pthread_mutex_lock(&lock);
+    Hospital *hospital = (Hospital *)arg;
+    hospital->availableAmbulance++;
+    printf("Ambulance returned from %s and is now available.\n", hospital->name);
+    pthread_mutex_unlock(&lock);
+    return NULL;
+}
+
+void adjustAmbulanceAvailability(Hospital *hospital, int distance)
+{
+    pthread_mutex_lock(&lock);
+    if (hospital->availableAmbulance > 0)
+    {
+        hospital->availableAmbulance--;
+        printf("Ambulance dispatched to %s. Available ambulances: %d\n", hospital->name, hospital->availableAmbulance);
+        int *duration = malloc(sizeof(int));
+        *duration = distance * 2;
+        pthread_t thread;
+        pthread_create(&thread, NULL, return_ambulance, (void *)hospital);
+        pthread_detach(thread);
+    }
+    else
+    {
+        printf("No ambulances available at %s. Please wait.\n", hospital->name);
+    }
+    pthread_mutex_unlock(&lock);
+}
+
+void isHospitalAvailable(Hospital *hospital, int distance,char *source)
+{
+    pthread_t thread;
     if (hospital->availableAmbulance > 0)
     {
         printf("Ambulance is available at %s\n", hospital->name);
+        adjustAmbulanceAvailability(hospital, distance);
     }
     else
     {
@@ -307,7 +345,7 @@ void isHospitalAvailable(Hospital *hospital)
     }
 }
 
-void nearestHospital(Graph *graph, int distance[], int location)
+void nearestHospital(Graph *graph, int distance[], int location, char *source)
 {
     int min = INT_MAX;
     int index = -1;
@@ -325,7 +363,7 @@ void nearestHospital(Graph *graph, int distance[], int location)
                 index = i;
             }
         }
-        isHospitalAvailable(graph->hospitals[index]);
+        isHospitalAvailable(graph->hospitals[index], distance[index],source);
         break;
     }
     printf("Nearest Hospital is %s at a distance of %d\n", graph->hospitals[index]->name, distance[index]);
@@ -333,14 +371,14 @@ void nearestHospital(Graph *graph, int distance[], int location)
 
 int main()
 {
+    pthread_mutex_init(&lock, NULL);
+
     // Create the graph as per the provided createGraph function
     Graph *graph = createGraph();
 
     // Assume source node is "A" (0) and there are 5 hospitals
     int hospitalDistances[5];
 
-    Node *nodes[5] = {graph->nodes[0], graph->nodes[1], graph->nodes[2], graph->nodes[3], graph->nodes[4]};
-    Node **nodesPtr = nodes;
 
     printGraph(graph);
     Graph *mstGraph = primMST(graph);
@@ -355,7 +393,7 @@ int main()
     printf("\nDistances from source node to all other nodes:\n");
     int location = 9;
     struct node *sourceNode = graph->nodes[location]; // Node D as source
-
+    char *source = sourceNode->name;
     bfs(graph, sourceNode, distances); // if G is at index 6
 
     // Print the distances from the source node to all other nodes
@@ -365,7 +403,7 @@ int main()
     }
     printf("\n\n");
 
-    nearestHospital(graph, distances, location);
+    nearestHospital(graph, distances, location, source);
 
     return 0;
 }
