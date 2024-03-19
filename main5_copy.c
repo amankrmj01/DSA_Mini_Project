@@ -56,7 +56,7 @@ typedef struct queue
 void setAdjacencyList(Node *node, int numEdges, Edge *edges[])
 {
     node->adjList = (Edge **)malloc(numEdges * sizeof(Edge *));
-    node->adjListCount = numEdges; 
+    node->adjListCount = numEdges;
 
     for (int i = 0; i < numEdges; i++)
     {
@@ -310,6 +310,8 @@ void adjustAmbulanceAvailability(Hospital *hospital, int distance, char *source)
     {
         hospital->availableAmbulance--;
         printf("Ambulance dispatched to %s from %s Available ambulances: %d\n", source, hospital->name, hospital->availableAmbulance);
+        int *duration = malloc(sizeof(int));
+        *duration = distance;
         AmbulanceArgs *args = malloc(sizeof(AmbulanceArgs));
         args->duration = distance;
         args->hospital = hospital;
@@ -336,6 +338,22 @@ void isHospitalAvailable(Hospital *hospital, int distance, char *source)
     {
         printf("Ambulance is not available at %s\n", hospital->name);
     }
+}
+
+int isAmbulanceAvailable(Hospital *hospital)
+{
+    if (hospital->availableAmbulance > 0)
+        return 0;
+    else
+        return 1;
+}
+
+int isEmergencyAvailable(Hospital *hospital)
+{
+    if (hospital->availableEmergency > 0)
+        return 0; // emergency available
+    else
+        return 1; // no Emergency available
 }
 
 void nearestHospital(Graph *graph, int distance[], int location, char *source)
@@ -371,8 +389,48 @@ void nearestHospital(Graph *graph, int distance[], int location, char *source)
     }
 
     printf("\n");
-    printf("Nearest Hospital is %s at a distance of %d\n", graph->hospitals[indexCopy[0]]->name, distance[indexCopy[0]]);
-    isHospitalAvailable(graph->hospitals[indexCopy[0]], distance[indexCopy[0]], source);
+
+    int i = 0;
+
+    int totaldistance = 0;
+    int ambIndex = 0;
+    int hospIndex = 0;
+    while (i < 5)
+    {
+        // printf("Checking Hospital at index %d\n", indexCopy[i]);
+        if (isAmbulanceAvailable(graph->hospitals[indexCopy[i]]))
+        {
+            printf("Ambulance not available at %s\n", graph->hospitals[indexCopy[i]]->name);
+            i++;
+        }
+        else
+        {
+            // printf("Nearest Hospital is %s at a distance of %d\n", graph->hospitals[indexCopy[i]]->name, distance[indexCopy[i]]);
+            // isHospitalAvailable(graph->hospitals[indexCopy[i]], distance[indexCopy[i]], source);
+            totaldistance = distance[indexCopy[i]];
+            ambIndex = indexCopy[i];
+            break;
+        }
+    }
+    int j = 0;
+    while (j < 5)
+    {
+        // printf("Checking Emergency Bed at index %d\n", indexCopy[j]);
+        if (isEmergencyAvailable(graph->hospitals[indexCopy[j]]))
+        {
+            printf("Emergency Bed not available at %s\n", graph->hospitals[indexCopy[j]]->name);
+            j++;
+        }
+        else
+        {
+            // printf("Emergency Bed is available at %s\n", graph->hospitals[indexCopy[j]]->name);
+            totaldistance += distance[indexCopy[j]];
+            hospIndex = indexCopy[j];
+            break;
+        }
+    }
+    printf("Nearest Hospital is %s at a distance of %d\n and amulace will arrive in %d from %s\n", graph->hospitals[hospIndex]->name, distance[hospIndex], distance[ambIndex], graph->hospitals[ambIndex]->name);
+    adjustAmbulanceAvailability(graph->hospitals[hospIndex], totaldistance, source);
 }
 
 int main()
@@ -416,6 +474,11 @@ int main()
 
             printf("\n--- Emergency Case ---\n");
             bfs(graph, sourceNode, distances);
+            for (int i = 0; i < 10; i++)
+            {
+                printf("Distance from source to node %d: %d\n", i, distances[i]);
+            }
+            printf("\n\n");
             nearestHospital(graph, distances, emergencyLocation, source);
             break;
         }
