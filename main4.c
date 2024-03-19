@@ -38,14 +38,6 @@ typedef struct graph
     Node *nodes[10];
     Hospital *hospitals[5];
 } Graph;
-typedef struct
-{
-    int duration;
-    Hospital *hospital;
-} AmbulanceArgs;
-
-
-
 
 void setAdjacencyList(Node *node, int numEdges, Edge *edges[])
 {
@@ -309,33 +301,28 @@ int dequeue(Queue *q)
 
 void *return_ambulance(void *arg)
 {
-    AmbulanceArgs *args = (AmbulanceArgs *)arg;
-    int duration = args->duration;
-    Hospital *hospital = args->hospital;
-    sleep(duration*2);
+    int duration = *(int *)arg;
+    sleep(duration);
     pthread_mutex_lock(&lock);
+    Hospital *hospital = (Hospital *)arg;
     hospital->availableAmbulance++;
-    printf("Ambulance returned to %s and is now available.\n", hospital->name);
+    printf("Ambulance returned from %s and is now available.\n", hospital->name);
     pthread_mutex_unlock(&lock);
     return NULL;
 }
 
-void adjustAmbulanceAvailability(Hospital *hospital, int distance, char *source)
+void adjustAmbulanceAvailability(Hospital *hospital, int distance)
 {
     pthread_mutex_lock(&lock);
     if (hospital->availableAmbulance > 0)
     {
         hospital->availableAmbulance--;
-        printf("Ambulance dispatched to %s from %s Available ambulances: %d\n", source, hospital->name, hospital->availableAmbulance);
+        printf("Ambulance dispatched to %s. Available ambulances: %d\n", hospital->name, hospital->availableAmbulance);
         int *duration = malloc(sizeof(int));
-        *duration = distance;
-        AmbulanceArgs *args = malloc(sizeof(AmbulanceArgs));
-        args->duration = distance;
-        args->hospital = hospital;
+        *duration = distance * 2;
         pthread_t thread;
-        pthread_create(&thread, NULL, return_ambulance, (void *)args);
+        pthread_create(&thread, NULL, return_ambulance, (void *)hospital);
         pthread_detach(thread);
-        free(args);
     }
     else
     {
@@ -344,17 +331,57 @@ void adjustAmbulanceAvailability(Hospital *hospital, int distance, char *source)
     pthread_mutex_unlock(&lock);
 }
 
-void isHospitalAvailable(Hospital *hospital, int distance, char *source)
+void isHospitalAvailable(Graph *graph,Hospital *hospital, int distance[], char *source,int location)
 {
     pthread_t thread;
-    if (hospital->availableAmbulance > 0)
+    if (hospital->availableEmergency > 0)
     {
-        printf("Ambulance is available at %s\n", hospital->name);
-        adjustAmbulanceAvailability(hospital, distance, source);
+        if (hospital->availableAmbulance > 0)
+        {
+            printf("Ambulance is available at %s\n", hospital->name);
+            adjustAmbulanceAvailability(hospital, distance);
+        }
+        else
+        {
+            printf("Ambulance is not available at %s\n", hospital->name);
+            int minDistance = INT_MAX;
+            int nearestHospitalIndex = -1;
+            for (int i = 0; i < 5; i++)
+            {
+                if (i == location)
+                {
+                    continue;
+                }
+                if (distance[i] < minDistance)
+                {
+                    minDistance = distance[i];
+                    nearestHospitalIndex = i;
+                }
+            }
+            printf("Sending ambulance from %s to %s\n", graph->hospitals[nearestHospitalIndex]->name, hospital->name);
+            adjustAmbulanceAvailability(graph->hospitals[nearestHospitalIndex], minDistance);
+        }
     }
     else
     {
-        printf("Ambulance is not available at %s\n", hospital->name);
+        printf("No emergency beds available at %s\n", hospital->name);
+        int minDistance = INT_MAX;
+        int nearestHospitalIndex = -1;
+        for (int i = 0; i < 5; i++)
+        {
+            if (i == location)
+            {
+                continue;
+            }
+            if (distance[i] < minDistance)
+            {
+                minDistance = distance[i];
+                nearestHospitalIndex = i;
+            }
+        }
+        printf("Sending ambulance from %s to %s\n", hospital->name, graph->hospitals[nearestHospitalIndex]->name);
+        adjustAmbulanceAvailability(hospital, distance);
+        adjustAmbulanceAvailability(graph->hospitals[nearestHospitalIndex], minDistance);
     }
 }
 
@@ -362,37 +389,24 @@ void nearestHospital(Graph *graph, int distance[], int location, char *source)
 {
     int min = INT_MAX;
     int index = -1;
-
-    int distanceCopy[5];
-    memcpy(distanceCopy, distance, sizeof(distanceCopy));
-    int indexCopy[5] = {0, 1, 2, 3, 4};
-
-    for (int i = 0; i < 4; i++)
+    while (1)
     {
-        for (int j = 0; j < 4 - i; j++)
+        for (int i = 0; i < 5; i++)
         {
-            if (distanceCopy[j] > distanceCopy[j + 1])
+            if (i == location)
             {
-                int temp = distanceCopy[j];
-                distanceCopy[j] = distanceCopy[j + 1];
-                distanceCopy[j + 1] = temp;
-
-                int tempIndex = indexCopy[j];
-                indexCopy[j] = indexCopy[j + 1];
-                indexCopy[j + 1] = tempIndex;
+                continue;
+            }
+            if (distance[i] < min)
+            {
+                min = distance[i];
+                index = i;
             }
         }
+        isHospitalAvailable(graph,graph->hospitals[index], distance,source,index);
+        break;
     }
-
-    printf("IndexCopy: ");
-    for (int i = 0; i < 5; i++)
-    {
-        printf("%d ", indexCopy[i]);
-    }
-
-    printf("\n");
-    printf("Nearest Hospital is %s at a distance of %d\n", graph->hospitals[indexCopy[0]]->name, distance[indexCopy[0]]);
-    isHospitalAvailable(graph->hospitals[indexCopy[0]], distance[indexCopy[0]], source);
+    printf("Nearest Hospital is %s at a distance of %d\n", graph->hospitals[index]->name, distance[index]);
 }
 
 int main()
@@ -405,6 +419,7 @@ int main()
     // Assume source node is "A" (0) and there are 5 hospitals
     int hospitalDistances[5];
 
+
     printGraph(graph);
     Graph *mstGraph = primMST(graph);
 
@@ -416,67 +431,19 @@ int main()
 
     // Call the bfs function
     printf("\nDistances from source node to all other nodes:\n");
-   
-    struct node *sourceNode ; // Node D as source
-    char *source ;
-    // bfs(graph, sourceNode, distances); // if G is at index 6
+    int location = 9;
+    struct node *sourceNode = graph->nodes[location]; // Node D as source
+    char *source = sourceNode->name;
+    bfs(graph, sourceNode, distances); // if G is at index 6
 
-    // // Print the distances from the source node to all other nodes
-    // for (int i = 0; i < 10; i++)
-    // {
-    //     printf("Distance from source to node %d: %d\n", i, distances[i]);
-    // }
-    // printf("\n\n");
-
-    // nearestHospital(graph, distances, location, source);
-
-    int choice;
-    do
+    // Print the distances from the source node to all other nodes
+    for (int i = 0; i < 10; i++)
     {
-        printf("\n------ Menu ------\n");
-        printf("1. Emergency\n");
-        printf("2. General\n");
-        printf("3. Exit\n");
-        printf("Enter your choice: ");
-        scanf("%d", &choice);
+        printf("Distance from source to node %d: %d\n", i, distances[i]);
+    }
+    printf("\n\n");
 
-        switch (choice)
-        {
-        case 1:
-        {
-            printf("Enter the location of the emergency: ");
-            int emergencyLocation;
-            scanf("%d", &emergencyLocation);
-            sourceNode = graph->nodes[emergencyLocation];
-            source = sourceNode->name;
-            // Logic for emergency case here
-            // You can do additional processing based on the emergencyLocation
-            printf("\n--- Emergency Case ---\n");
-            bfs(graph, sourceNode, distances);
-            for (int i = 0; i < 10; i++)
-            {
-                printf("Distance from source to node %d: %d\n", i, distances[i]);
-            }
-            // You can call the relevant functions for emergency cases here
-            nearestHospital(graph, distances, emergencyLocation, source);
-            break;
-        }
-        case 2:
-        {
-            // Logic for general case here
-            printf("\n--- General Case ---\n");
-            printf("Enter the patient details:\n");
-            // You can take patient details input here
-            // Additional processing for general cases can be added
-            break;
-        }
-        case 3:
-            printf("Exiting program. Goodbye!\n");
-            break;
-        default:
-            printf("Invalid choice. Please enter a valid option.\n");
-        }
-    } while (choice != 3);
+    nearestHospital(graph, distances, location, source);
 
     return 0;
 }
