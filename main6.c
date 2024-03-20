@@ -17,7 +17,6 @@ typedef struct node
 {
     char name[100];
     int isVisited;
-    int isHospital;
     int adjListCount;
     Edge **adjList;
 } Node;
@@ -73,17 +72,11 @@ Graph *createGraph()
     for (int i = 0; i < 10; ++i)
     {
         graph->nodes[i] = (Node *)malloc(sizeof(Node));
-        graph->nodes[i]->isHospital = 0;
     }
-    graph->nodes[0]->isHospital = 1;
     strcpy(graph->nodes[0]->name, "A");
-    graph->nodes[1]->isHospital = 1;
     strcpy(graph->nodes[1]->name, "B");
-    graph->nodes[2]->isHospital = 1;
     strcpy(graph->nodes[2]->name, "C");
-    graph->nodes[3]->isHospital = 1;
     strcpy(graph->nodes[3]->name, "D");
-    graph->nodes[4]->isHospital = 1;
     strcpy(graph->nodes[4]->name, "E");
     strcpy(graph->nodes[5]->name, "F");
     strcpy(graph->nodes[6]->name, "G");
@@ -462,8 +455,6 @@ int main()
 
     Graph *graph = createGraph();
 
-    int hospitalDistances[5];
-
     printGraph(graph);
     Graph *mstGraph = primMST(graph);
 
@@ -521,3 +512,8 @@ int main()
 
     return 0;
 }
+
+
+
+
+
