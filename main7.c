@@ -253,6 +253,9 @@ void *emptyEmergencyBed(void *arg)
     pthread_mutex_lock(&lock);
     hospital->availableEmergency++;
     printf("\nEmergency bed at %s is now available.\n", hospital->name);
+    char str[200];
+    sprintf(str, "Emergency bed at %s is now available.\n", hospital->name);
+    hospitalLog(hospital->name, str);
     printf("\n------ Menu ------\n");
     printf("1. Emergency\n");
     printf("2. General\n");
@@ -268,7 +271,10 @@ void adjustEmergencyAvailability(Hospital *hospital, char *source)
     if (hospital->availableEmergency > 0)
     {
         hospital->availableEmergency--;
-        printf("Emergency bed occupied at %s. Available beds: %d\n", hospital->name, hospital->availableEmergency);
+        printf("\nEmergency bed occupied at %s. Available beds: %d\n", hospital->name, hospital->availableEmergency);
+        char str[200];
+        sprintf(str, "Emergency bed occupied at %s. Available beds: %d\n", hospital->name, hospital->availableEmergency);
+        hospitalLog(hospital->name, str);
         AmbulanceArgs *args = malloc(sizeof(AmbulanceArgs));
         args->hospital = hospital;
         pthread_t thread;
@@ -294,6 +300,9 @@ void *return_ambulance(void *arg)
     pthread_mutex_lock(&lock);
     hospital->availableAmbulance++;
     printf("\nAmbulance returned to %s and is now available.\n", hospital->name);
+    char str[200];
+    sprintf(str, "Ambulance returned to %s and is now available.\n", hospital->name);
+    hospitalLog(hospital->name, str);
     printf("\n------ Menu ------\n");
     printf("1. Emergency\n");
     printf("2. General\n");
@@ -310,6 +319,9 @@ void adjustAmbulanceAvailability(Hospital *hospital, int distance, char *source)
     {
         hospital->availableAmbulance--;
         printf("\nAmbulance dispatched to %s from %s Available ambulances: %d\n", source, hospital->name, hospital->availableAmbulance);
+        char str[200];
+        sprintf(str, "Ambulance dispatched to %s from %s Available ambulances: %d\n", source, hospital->name, hospital->availableAmbulance);
+        hospitalLog(hospital->name, str);
         int *duration = malloc(sizeof(int));
         *duration = distance;
         AmbulanceArgs *args = malloc(sizeof(AmbulanceArgs));
@@ -358,9 +370,6 @@ int isEmergencyAvailable(Hospital *hospital)
 
 void nearestHospital(Graph *graph, int distance[], int location, char *source, int emergency)
 {
-    int min = INT_MAX;
-    int index = -1;
-
     int distanceCopy[5];
     memcpy(distanceCopy, distance, sizeof(distanceCopy));
     int indexCopy[5] = {0, 1, 2, 3, 4};
@@ -443,9 +452,26 @@ void *return_general(void *arg)
     pthread_mutex_lock(&lock);
     args->hospital->availableGeneral++;
     printf("\nGeneral slot freed at %s and is now available.\n", args->hospital->name);
+    char str[200];
+    sprintf(str, "General slot freed at %s and is now available.\n", args->hospital->name);
+    hospitalLog(args->hospital->name, str);
     pthread_mutex_unlock(&lock);
     free(args);
     return NULL;
+}
+
+void hospitalLog(char *hospitalName, char *log)
+{
+    char filename[105];
+    sprintf(filename, "%s.txt", hospitalName);
+    FILE *file = fopen(filename, "a");
+    if (file == NULL)
+    {
+        printf("Failed to open the file.\n");
+        return;
+    }
+    fprintf(file, "%s", log);
+    fclose(file);
 }
 
 void adjustGeneralAvailability(Hospital *hospital)
@@ -455,6 +481,9 @@ void adjustGeneralAvailability(Hospital *hospital)
     {
         hospital->availableGeneral--;
         printf("\nGeneral slot booked at %s. Available general slots: %d\n", hospital->name, hospital->availableGeneral);
+        char str[200];
+        sprintf(str, "\nGeneral slot booked at %s. Available general slots: %d\n", hospital->name, hospital->availableGeneral);
+        hospitalLog(hospital->name, str);
         GeneralArgs *args = malloc(sizeof(GeneralArgs));
         args->hospital = hospital;
         pthread_t thread;
@@ -467,7 +496,8 @@ void adjustGeneralAvailability(Hospital *hospital)
     }
     pthread_mutex_unlock(&lock);
 }
-void getdetails(char* hospitalName)
+
+void getdetails(char *hospitalName)
 {
     printf("Enter the patient details:\n");
     char filename[105];
@@ -491,7 +521,6 @@ void getdetails(char* hospitalName)
     fclose(file);
 }
 
-
 void isGeneralAvailable(Hospital *hospital)
 {
     if (hospital->availableGeneral > 0)
@@ -505,8 +534,6 @@ void isGeneralAvailable(Hospital *hospital)
         printf("\nNo slots are available at %s.\n", hospital->name);
     }
 }
-
-
 
 void bookGeneralSlot(Graph *graph, int distances[])
 {
