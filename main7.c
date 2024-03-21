@@ -54,6 +54,20 @@ typedef struct queue
     int rear;
 } Queue;
 
+void hospitalLog(char *hospitalName, char *log)
+{
+    char filename[105];
+    sprintf(filename, "%s.txt", hospitalName);
+    FILE *file = fopen(filename, "a");
+    if (file == NULL)
+    {
+        printf("Failed to open the file.\n");
+        return;
+    }
+    fprintf(file, "%s", log);
+    fclose(file);
+}
+
 void setAdjacencyList(Node *node, int numEdges, Edge *edges[])
 {
     node->adjList = (Edge **)malloc(numEdges * sizeof(Edge *));
@@ -458,20 +472,6 @@ void *return_general(void *arg)
     pthread_mutex_unlock(&lock);
     free(args);
     return NULL;
-}
-
-void hospitalLog(char *hospitalName, char *log)
-{
-    char filename[105];
-    sprintf(filename, "%s.txt", hospitalName);
-    FILE *file = fopen(filename, "a");
-    if (file == NULL)
-    {
-        printf("Failed to open the file.\n");
-        return;
-    }
-    fprintf(file, "%s", log);
-    fclose(file);
 }
 
 void adjustGeneralAvailability(Hospital *hospital)
