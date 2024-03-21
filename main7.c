@@ -25,11 +25,8 @@ typedef struct hospital
 {
     char name[100];
     int availableEmergency;
-    int maxEmergency;
     int availableGeneral;
-    int maxGeneral;
     int availableAmbulance;
-    int maxAmbulance;
 } Hospital;
 
 typedef struct graph
@@ -42,6 +39,11 @@ typedef struct
     int duration;
     Hospital *hospital;
 } AmbulanceArgs;
+
+typedef struct
+{
+    Hospital *hospital;
+} GeneralArgs;
 
 #define INF 99999999
 
@@ -88,24 +90,21 @@ Graph *createGraph()
     {
         graph->hospitals[i] = (Hospital *)malloc(sizeof(Hospital));
         sprintf(graph->hospitals[i]->name, "Hospital %c", ' ' + i + 33);
-        graph->hospitals[i]->availableEmergency = 10;
-        graph->hospitals[i]->maxEmergency = 10;
-        graph->hospitals[i]->maxGeneral = 20;
+        graph->hospitals[i]->availableEmergency = 5;
         graph->hospitals[i]->availableGeneral = 20;
         graph->hospitals[i]->availableAmbulance = 5;
-        graph->hospitals[i]->maxAmbulance = 5;
     }
 
-    setAdjacencyList(graph->nodes[0], 3, (Edge *[]){&(Edge){graph->nodes[6], 10}, &(Edge){graph->nodes[5], 15}, &(Edge){graph->nodes[8], 20}});
-    setAdjacencyList(graph->nodes[1], 2, (Edge *[]){&(Edge){graph->nodes[7], 25}, &(Edge){graph->nodes[9], 30}});
-    setAdjacencyList(graph->nodes[2], 1, (Edge *[]){&(Edge){graph->nodes[8], 35}});
+    setAdjacencyList(graph->nodes[0], 3, (Edge *[]){&(Edge){graph->nodes[6], 15}, &(Edge){graph->nodes[5], 35}, &(Edge){graph->nodes[8], 25}});
+    setAdjacencyList(graph->nodes[1], 2, (Edge *[]){&(Edge){graph->nodes[7], 25}, &(Edge){graph->nodes[9], 15}});
+    setAdjacencyList(graph->nodes[2], 1, (Edge *[]){&(Edge){graph->nodes[8], 20}});
     setAdjacencyList(graph->nodes[3], 1, (Edge *[]){&(Edge){graph->nodes[9], 40}});
-    setAdjacencyList(graph->nodes[4], 1, (Edge *[]){&(Edge){graph->nodes[7], 45}});
-    setAdjacencyList(graph->nodes[5], 3, (Edge *[]){&(Edge){graph->nodes[0], 15}, &(Edge){graph->nodes[9], 55}, &(Edge){graph->nodes[7], 60}});
-    setAdjacencyList(graph->nodes[6], 1, (Edge *[]){&(Edge){graph->nodes[0], 10}});
-    setAdjacencyList(graph->nodes[7], 3, (Edge *[]){&(Edge){graph->nodes[5], 60}, &(Edge){graph->nodes[1], 25}, &(Edge){graph->nodes[4], 45}});
-    setAdjacencyList(graph->nodes[8], 2, (Edge *[]){&(Edge){graph->nodes[0], 20}, &(Edge){graph->nodes[2], 35}});
-    setAdjacencyList(graph->nodes[9], 3, (Edge *[]){&(Edge){graph->nodes[5], 55}, &(Edge){graph->nodes[1], 30}, &(Edge){graph->nodes[3], 40}});
+    setAdjacencyList(graph->nodes[4], 1, (Edge *[]){&(Edge){graph->nodes[7], 20}});
+    setAdjacencyList(graph->nodes[5], 3, (Edge *[]){&(Edge){graph->nodes[0], 35}, &(Edge){graph->nodes[9], 10}, &(Edge){graph->nodes[7], 15}});
+    setAdjacencyList(graph->nodes[6], 1, (Edge *[]){&(Edge){graph->nodes[0], 15}});
+    setAdjacencyList(graph->nodes[7], 3, (Edge *[]){&(Edge){graph->nodes[5], 15}, &(Edge){graph->nodes[1], 25}, &(Edge){graph->nodes[4], 20}});
+    setAdjacencyList(graph->nodes[8], 2, (Edge *[]){&(Edge){graph->nodes[0], 25}, &(Edge){graph->nodes[2], 20}});
+    setAdjacencyList(graph->nodes[9], 3, (Edge *[]){&(Edge){graph->nodes[5], 10}, &(Edge){graph->nodes[1], 15}, &(Edge){graph->nodes[3], 40}});
 
     return graph;
 }
@@ -151,8 +150,6 @@ int getNodeIndex(void **nodes, void *targetNode, int numNodes)
     }
     return -1;
 }
-
-
 
 Queue *createQueue()
 {
@@ -215,7 +212,7 @@ int getNodeSIndex(void **nodes, void *targetNode, int numNodes)
     return -1;
 }
 
-void dijkstras(Graph *graph, Node *startNode, int *distances)
+void dfs(Graph *graph, Node *startNode, int *distances)
 {
     Queue *q = createQueue();
 
@@ -252,7 +249,7 @@ void *emptyEmergencyBed(void *arg)
 {
     AmbulanceArgs *args = (AmbulanceArgs *)arg;
     Hospital *hospital = args->hospital;
-    sleep(5 * 60); // wait for 5 minutes
+    sleep(5 * 60);
     pthread_mutex_lock(&lock);
     hospital->availableEmergency++;
     printf("\nEmergency bed at %s is now available.\n", hospital->name);
@@ -439,6 +436,99 @@ void nearestHospital(Graph *graph, int distance[], int location, char *source, i
     }
 }
 
+void *return_general(void *arg)
+{
+    GeneralArgs *args = (GeneralArgs *)arg;
+    sleep(120);
+    pthread_mutex_lock(&lock);
+    args->hospital->availableGeneral++;
+    printf("\nGeneral slot freed at %s and is now available.\n", args->hospital->name);
+    pthread_mutex_unlock(&lock);
+    free(args);
+    return NULL;
+}
+
+void adjustGeneralAvailability(Hospital *hospital)
+{
+    pthread_mutex_lock(&lock);
+    if (hospital->availableGeneral > 0)
+    {
+        hospital->availableGeneral--;
+        printf("\nGeneral slot booked at %s. Available general slots: %d\n", hospital->name, hospital->availableGeneral);
+        GeneralArgs *args = malloc(sizeof(GeneralArgs));
+        args->hospital = hospital;
+        pthread_t thread;
+        pthread_create(&thread, NULL, return_general, (void *)args);
+        pthread_detach(thread);
+    }
+    else
+    {
+        printf("\nNo general slots are available at %s.\n", hospital->name);
+    }
+    pthread_mutex_unlock(&lock);
+}
+void getdetails(char* hospitalName)
+{
+    printf("Enter the patient details:\n");
+    char filename[105];
+    sprintf(filename, "%s.txt", hospitalName);
+    FILE *file = fopen(filename, "a");
+    if (file == NULL)
+    {
+        printf("Failed to open the file.\n");
+        return;
+    }
+
+    char name[100];
+    int age;
+    printf("Enter name: ");
+    scanf("%s", name);
+    printf("Enter age: ");
+    scanf("%d", &age);
+
+    fprintf(file, "Name: %s, Age: %d\n", name, age);
+
+    fclose(file);
+}
+
+
+void isGeneralAvailable(Hospital *hospital)
+{
+    if (hospital->availableGeneral > 0)
+    {
+        printf("\nGeneral slots available at %s.\n", hospital->name);
+        getdetails(hospital->name);
+        adjustGeneralAvailability(hospital);
+    }
+    else
+    {
+        printf("\nNo slots are available at %s.\n", hospital->name);
+    }
+}
+
+
+
+void bookGeneralSlot(Graph *graph, int distances[])
+{
+    char generalLocation;
+    int c;
+    int generalLocationIndex1;
+    do
+    {
+        printf("\nEnter Hospital in which you want to go : ");
+        while ((c = getchar()) != '\n' && c != EOF)
+        {
+        }
+        scanf("%c", &generalLocation);
+        generalLocationIndex1 = (int)generalLocation - 'A';
+        if (graph->hospitals[generalLocationIndex1]->availableGeneral == 0)
+        {
+            printf("\nAll slots are full at %s. Please choose another hospital.\n", graph->hospitals[generalLocationIndex1]->name);
+        }
+    } while (graph->hospitals[generalLocationIndex1]->availableGeneral == 0);
+    isGeneralAvailable(graph->hospitals[generalLocationIndex1]);
+}
+
 int main()
 {
     pthread_mutex_init(&lock, NULL);
@@ -479,7 +569,7 @@ int main()
             source = sourceNode->name;
 
             printf("\n--- Emergency Case ---\n");
-            dijkstras(graph, sourceNode, distances);
+            dfs(graph, sourceNode, distances);
             for (int i = 0; i < 10; i++)
             {
                 printf("Distance from source to node %d: %d\n", i, distances[i]);
@@ -491,7 +581,6 @@ int main()
         case 2:
         {
             printf("\n--- General Case ---\n");
-            printf("Enter the patient details:\n");
             printf("Enter your location : ");
             char generalLocation;
             int c;
@@ -503,13 +592,14 @@ int main()
             int generalLocationIndex = (int)generalLocation - 'A';
             sourceNode = graph->nodes[generalLocationIndex];
             source = sourceNode->name;
-            dijkstras(graph, sourceNode, distances);
+            dfs(graph, sourceNode, distances);
             printf("Distance from your location %s to other Hospitals:\n", sourceNode->name);
             // for (int i = 0; i < 5; i++)
             // {
             //     printf("%s\t %d\n", graph->hospitals[i]->name,distances[i]);
             // }
             nearestHospital(graph, distances, generalLocation, source, 0);
+            bookGeneralSlot(graph, distances);
 
             break;
         }
