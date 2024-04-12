@@ -139,32 +139,6 @@ void printGraph(Graph *graph)
     }
 }
 
-int minDistanceIndex(int minDist[], int visited[])
-{
-    int min = INT_MAX, minIndex;
-    for (int i = 0; i < 10; i++)
-    {
-        if (!visited[i] && minDist[i] < min)
-        {
-            min = minDist[i];
-            minIndex = i;
-        }
-    }
-    return minIndex;
-}
-
-int getNodeIndex(void **nodes, void *targetNode, int numNodes)
-{
-    for (int i = 0; i < numNodes; i++)
-    {
-        if (nodes[i] == targetNode)
-        {
-            return i;
-        }
-    }
-    return -1;
-}
-
 Queue *createQueue()
 {
     Queue *q = malloc(sizeof(Queue));
@@ -226,7 +200,7 @@ int getNodeSIndex(void **nodes, void *targetNode, int numNodes)
     return -1;
 }
 
-void dfs(Graph *graph, Node *startNode, int *distances)
+void BFS(Graph *graph, Node *startNode, int *distances)
 {
     Queue *q = createQueue();
 
@@ -404,12 +378,6 @@ void nearestHospital(Graph *graph, int distance[], int location, char *source, i
             }
         }
     }
-
-    // printf("Index: ");
-    // for (int i = 0; i < 5; i++)
-    // {
-    //     printf("%d ", indexCopy[i]);
-    // }
 
     if (emergency != 1)
     {
@@ -596,7 +564,7 @@ int main()
             source = sourceNode->name;
 
             printf("\n--- Emergency Case ---\n");
-            dfs(graph, sourceNode, distances);
+            BFS(graph, sourceNode, distances);
             for (int i = 0; i < 10; i++)
             {
                 printf("Distance from source to node %d: %d\n", i, distances[i]);
@@ -619,7 +587,7 @@ int main()
             int generalLocationIndex = (int)generalLocation - 'A';
             sourceNode = graph->nodes[generalLocationIndex];
             source = sourceNode->name;
-            dfs(graph, sourceNode, distances);
+            BFS(graph, sourceNode, distances);
             printf("Distance from your location %s to other Hospitals:\n", sourceNode->name);
             // for (int i = 0; i < 5; i++)
             // {
